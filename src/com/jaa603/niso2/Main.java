@@ -1,14 +1,17 @@
 package com.jaa603.niso2;
 
 
+import java.io.File;
+import java.io.FileNotFoundException;
 import java.util.ArrayList;
+import java.util.Scanner;
 
 public class Main {
 
     public static void main(String[] args) {
         if (args[0].equals("-question")) {
             switch (Integer.parseInt(args[1])) {
-                case 1:
+                case 1: {
                     String clause = args[3];
                     String assignment = args[5];
                     Clause c = new Clause(clause);
@@ -20,15 +23,61 @@ public class Main {
                         System.out.println(e.getMessage());
                     }
                     break;
-                case 2:
-                    // TODO
-                    System.out.println("TODO: Question 2");
+                }
+                case 2: {
+
+                    String wdimacFilepath = args[3];
+
+                    try {
+                        File f = new File(wdimacFilepath);
+                        Scanner s = new Scanner(f);
+                        ArrayList<Clause> clauses = new ArrayList<>();
+                        while (s.hasNextLine()) {
+                            String line = s.nextLine();
+
+                            switch (line.charAt(0)) {
+                                // Comment
+                                case 'c':
+                                    break;
+                                // Parameters
+                                case 'p':
+                                    break;
+                                // Clause
+                                default:
+                                    Clause clauseFromLine = new Clause(line);
+                                    clauses.add(clauseFromLine);
+                                    break;
+                            }
+                        }
+
+                        String assignment = args[5];
+                        int numClausesSatisfied = 0;
+                        for (Clause clause : clauses) {
+                            clause.assignValues(assignment);
+                            try {
+                                if (clause.evaluateClause() == 1) {
+                                    numClausesSatisfied++;
+                                }
+                            } catch (Exception e) {
+                                System.out.println("Something went wrong");
+                            }
+                        }
+                        System.out.println(Integer.toString(numClausesSatisfied));
+
+                    } catch (FileNotFoundException e) {
+                        System.out.println("Couldn't find file " + wdimacFilepath);
+                        e.printStackTrace();
+                    }
+
                     break;
-                case 3:
+                }
+                case 3: {
                     // TODO
                     System.out.println("TODO: Question 3");
                     break;
+                }
                 default:
+                    System.out.println("Unknown question number");
                     break;
             }
         } else {
