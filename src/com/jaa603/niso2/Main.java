@@ -6,9 +6,27 @@ import java.io.FileNotFoundException;
 import java.util.ArrayList;
 import java.util.Random;
 import java.util.Scanner;
+import java.util.concurrent.*;
 
 public class Main {
     final static int POSITIVE_LITERAL_VALUE = 1;
+
+    static class GeneticAlgorithmTask implements Callable<String> {
+        private ArrayList<Clause> clauses;
+        private int timeBudget;
+
+        public GeneticAlgorithmTask(ArrayList<Clause> clauses, int timeBudget) {
+            this.clauses = clauses;
+            this.timeBudget = timeBudget;
+        }
+
+        @Override
+        public String call() throws Exception {
+            String result = performGeneticAlgorithm(clauses, timeBudget);
+            System.out.println(result);
+            return "Ready!";
+        }
+    }
 
     public static void main(String[] args) {
         if (args[0].equals("-question")) {
@@ -44,8 +62,21 @@ public class Main {
                     int timeBudget = Integer.parseInt(args[5]);
                     int repetitions = Integer.parseInt(args[7]);
                     for (int i = 0; i < repetitions; i++) {
-                        String result = performGeneticAlgorithm(clauses, timeBudget);
-                        System.out.println(result);
+
+                        ExecutorService executor = Executors.newSingleThreadExecutor();
+                        Future<String> future = executor.submit(new GeneticAlgorithmTask(clauses, timeBudget));
+
+                        try {
+                            // Start running task for number of seconds specified in time budget
+                            System.out.println(future.get(timeBudget, TimeUnit.SECONDS));
+                        } catch (TimeoutException e) {
+                            // Cancel when we run out of time
+                            future.cancel(true);
+                        } catch (InterruptedException | ExecutionException e) {
+                            e.printStackTrace();
+                        }
+
+                        executor.shutdownNow();
                     }
 
                     break;
@@ -62,34 +93,39 @@ public class Main {
 
     private static String performGeneticAlgorithm(ArrayList<Clause> clauses, int timeBudget) {
         // Parameters for algorithm
-        final int POP_SIZE = 10;
+        final int POP_SIZE = 5;
         final float ELITISM_PROP = 0.3f;
         final float NORM_FACTOR = 0.5f;
-        final int MAX_GEN = 100;
 
         // Generate initial population by random
         ArrayList<Solution> pop = generateRandomPop(POP_SIZE, clauses);
+        // Ranking
+        sortSolutions(pop, 0, pop.size() - 1);
 
         int runtime = 0;
         Solution bestSolution = new Solution("", 0);
 
-
-        // TODO: refactor this to be in terms of time
-        for (int i = 0; i < MAX_GEN; i++) {
-            sortSolutions(pop, 0, pop.size() - 1);
+        int generation = 1;
+        // Perform this until we get interrupted
+        while (!Thread.interrupted()) {
+            // Selection
             ArrayList<Solution> selectedPop = selectSolutions(pop, POP_SIZE, ELITISM_PROP, NORM_FACTOR);
+            // Breeding
             ArrayList<Solution> childSolutions = breedPop(selectedPop, POP_SIZE);
+            // Get fitness of children
             for (Solution s : childSolutions) {
                 s.testClauses(clauses);
             }
+            // Ranking
             sortSolutions(childSolutions, 0, childSolutions.size() - 1);
             pop = childSolutions;
 
+            // Replace best solution if we've found a better one
             if (pop.get(0).getNumSatisfied() > bestSolution.getNumSatisfied()) {
                 bestSolution = pop.get(0);
             }
 
-            runtime = i * POP_SIZE;
+            runtime = generation * POP_SIZE;
         }
 
         return runtime + "\t" + String.valueOf(bestSolution.getNumSatisfied()) + "\t" + bestSolution.getAssignment();
