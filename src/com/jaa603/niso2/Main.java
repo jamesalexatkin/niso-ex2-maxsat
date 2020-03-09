@@ -103,7 +103,6 @@ public class Main {
 
         // Generate initial population by random
         ArrayList<Solution> pop = generateRandomPop(POP_SIZE, clauses, numVariables);
-//        System.out.println("pop generated");
         // Ranking
         sortSolutions(pop, 0, pop.size() - 1);
 
@@ -115,19 +114,15 @@ public class Main {
         while (!Thread.currentThread().isInterrupted()) {
             // Selection
             ArrayList<Solution> selectedPop = selectSolutions(pop, POP_SIZE, ELITISM_PROP, NORM_FACTOR);
-//            System.out.println("selected pop");
             // Breeding
             ArrayList<Solution> childSolutions = breedPop(selectedPop, POP_SIZE);
-//            System.out.println("children created");
             // Get fitness of children
             for (Solution s : childSolutions) {
                 s.testClauses(clauses);
             }
-//            System.out.println("children tested");
             // Ranking
             sortSolutions(childSolutions, 0, childSolutions.size() - 1);
             pop = childSolutions;
-//            System.out.println("children ranked");
 
             // Replace best solution if we've found a better one
             if (pop.get(0).getNumSatisfied() > bestSolution.getNumSatisfied()) {
@@ -135,11 +130,7 @@ public class Main {
             }
 
             runtime = generation * POP_SIZE;
-//            System.out.println(runtime);
         }
-
-//        System.out.println("BLAH");
-
 
         return runtime + "\t" + bestSolution.getNumSatisfied() + "\t" + bestSolution.getAssignment();
     }
@@ -347,7 +338,6 @@ public class Main {
         }
 
         public int evaluateClause() {
-//            if (values.size() == assignments.size()) {
             int i = 0;
             try {
                 boolean result = false;
@@ -366,11 +356,6 @@ public class Main {
                 System.out.println("Couldn't find element " + i + " in size " + assignments.length);
                 throw e;
             }
-//            } else {
-//                System.out.println(values);
-//                System.out.println(assignments);
-//                throw new Exception("Not all variables have been assigned " + values.size() + " " + assignments.size());
-//            }
         }
     }
 
