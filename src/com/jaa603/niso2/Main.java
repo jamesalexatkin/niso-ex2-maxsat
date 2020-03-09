@@ -8,25 +8,21 @@ import java.util.Random;
 import java.util.Scanner;
 import java.util.concurrent.*;
 
-import static java.lang.System.exit;
-
 public class Main {
     final static int POSITIVE_LITERAL_VALUE = 1;
 
     static class GeneticAlgorithmTask implements Callable<String> {
         private final int numVariables;
         private final ArrayList<Clause> clauses;
-        private final int timeBudget;
 
-        public GeneticAlgorithmTask(ArrayList<Clause> clauses, int timeBudget, int numVariables) {
+        public GeneticAlgorithmTask(ArrayList<Clause> clauses, int numVariables) {
             this.clauses = clauses;
-            this.timeBudget = timeBudget;
             this.numVariables = numVariables;
         }
 
         @Override
-        public String call() throws Exception {
-            String result = performGeneticAlgorithm(clauses, timeBudget, numVariables);
+        public String call() {
+            String result = performGeneticAlgorithm(clauses, numVariables);
             System.out.println(result);
             return "Ready!";
         }
@@ -42,7 +38,7 @@ public class Main {
                     c.assignValues(assignment);
                     try {
                         int result = c.evaluateClause();
-                        System.out.println(Integer.toString(result));
+                        System.out.println(result);
                     } catch (Exception e) {
                         System.out.println(e.getMessage());
                     }
@@ -51,12 +47,12 @@ public class Main {
                 case 2: {
                     // Read file
                     String wdimacsFilepath = args[3];
-                    Wdimacs wdimacsFile  = readWdimacsFile(wdimacsFilepath);
+                    Wdimacs wdimacsFile = readWdimacsFile(wdimacsFilepath);
                     ArrayList<Clause> clauses = wdimacsFile.getClauses();
 
                     String assignment = args[5];
                     int numClausesSatisfied = testClauses(clauses, assignment);
-                    System.out.println(Integer.toString(numClausesSatisfied));
+                    System.out.println(numClausesSatisfied);
 
                     break;
                 }
@@ -74,7 +70,7 @@ public class Main {
                     for (int i = 0; i < repetitions; i++) {
 
                         ExecutorService executor = Executors.newSingleThreadExecutor();
-                        Future<String> future = executor.submit(new GeneticAlgorithmTask(clauses, timeBudget, numVariables));
+                        Future<String> future = executor.submit(new GeneticAlgorithmTask(clauses, numVariables));
 
                         try {
                             // Start running task for number of seconds specified in time budget
@@ -99,7 +95,7 @@ public class Main {
 
     }
 
-    private static String performGeneticAlgorithm(ArrayList<Clause> clauses, int timeBudget, int numVariables) {
+    private static String performGeneticAlgorithm(ArrayList<Clause> clauses, int numVariables) {
         // Parameters for algorithm
         final int POP_SIZE = 5;
         final float ELITISM_PROP = 0.3f;
@@ -145,7 +141,7 @@ public class Main {
 //        System.out.println("BLAH");
 
 
-        return runtime + "\t" + String.valueOf(bestSolution.getNumSatisfied()) + "\t" + bestSolution.getAssignment();
+        return runtime + "\t" + bestSolution.getNumSatisfied() + "\t" + bestSolution.getAssignment();
     }
 
     private static ArrayList<Solution> breedPop(ArrayList<Solution> selectedPop, int popSize) {
@@ -190,21 +186,21 @@ public class Main {
         return new Solution(childAssignment);
     }
 
-    private static ArrayList<Solution> selectSolutions(ArrayList<Solution> pop, int pop_size, float elitism_prop, float norm_factor) {
+    private static ArrayList<Solution> selectSolutions(ArrayList<Solution> pop, int popSize, float elitismProp, float normFactor) {
         ArrayList<Solution> selected = new ArrayList<>();
 
         // Simple truncation/elitism selection
-        int eliteGroupSize = (int) (pop_size * elitism_prop);
+        int eliteGroupSize = (int) (popSize * elitismProp);
 
         for (int i = 0; i < eliteGroupSize; i++) {
             selected.add(pop.get(i));
         }
 
         Random rand = new Random();
-        for (int i = eliteGroupSize; i < pop_size; i++) {
+        for (int i = eliteGroupSize; i < popSize; i++) {
             float randomProb = rand.nextFloat();
             // Exponential ranking function
-            float selectionProb = (float) ((1 - Math.exp(-i)) / norm_factor);
+            float selectionProb = (float) ((1 - Math.exp(-i)) / normFactor);
 
             if (randomProb > selectionProb) {
                 selected.add(pop.get(i));
@@ -322,41 +318,44 @@ public class Main {
      */
     private static class Clause {
 
-        private ArrayList<Integer> values;
-        private ArrayList<Integer> assignments;
+        private int[] values;
+        private int[] assignments;
 
         public Clause(String valueString) {
-            values = new ArrayList<>();
+
             String[] tokens = valueString.split(" ");
+            values = new int[tokens.length - 2];
             // Start at 1 and end at length-1 to ignore first and last elements
-            for (int i = 1; i < tokens.length - 1; i++) {
-                values.add(Integer.parseInt(tokens[i]));
+            for (int i = 0; i < tokens.length - 2; i++) {
+                values[i] = Integer.parseInt(tokens[i+1]);
             }
         }
 
         public void assignValues(String assignmentString) {
-            assignments = new ArrayList<>();
+            assignments = new int[values.length];
 
-            for (Integer value : values) {
+//            System.out.println(Arrays.toString(values));
+            for (int i = 0; i < values.length; i++) {
+                int value = values[i];
                 // Minus 1 as clause values start from 1
                 int variableIndex = Math.abs(value) - 1;
                 // Get 0 or 1 at correct position in assignment string
                 char charAtPosition = assignmentString.charAt(variableIndex);
                 int valueToAssign = Character.getNumericValue(charAtPosition);
-                assignments.add(valueToAssign);
+                assignments[i] = (valueToAssign);
             }
         }
 
-        public int evaluateClause() throws Exception {
+        public int evaluateClause() {
 //            if (values.size() == assignments.size()) {
             int i = 0;
             try {
                 boolean result = false;
-                for (i = 0; i < values.size(); i++) {
+                for (i = 0; i < values.length; i++) {
                     // Get bool associated with assignment
-                    boolean assignedValue = intToBool(assignments.get(i));
+                    boolean assignedValue = intToBool(assignments[i]);
                     // Check if negative literal
-                    if (values.get(i) < 0) {
+                    if (values[i] < 0) {
                         assignedValue = !assignedValue;
                     }
                     // Perform disjunction/or to combine with overall expression
@@ -364,7 +363,7 @@ public class Main {
                 }
                 return boolToInt(result);
             } catch (Exception e) {
-                System.out.println("Couldn't find element " + i + " in size " + assignments.size());
+                System.out.println("Couldn't find element " + i + " in size " + assignments.length);
                 throw e;
             }
 //            } else {
