@@ -8,21 +8,25 @@ import java.util.Random;
 import java.util.Scanner;
 import java.util.concurrent.*;
 
+import static java.lang.System.exit;
+
 public class Main {
     final static int POSITIVE_LITERAL_VALUE = 1;
 
     static class GeneticAlgorithmTask implements Callable<String> {
-        private ArrayList<Clause> clauses;
-        private int timeBudget;
+        private final int numVariables;
+        private final ArrayList<Clause> clauses;
+        private final int timeBudget;
 
-        public GeneticAlgorithmTask(ArrayList<Clause> clauses, int timeBudget) {
+        public GeneticAlgorithmTask(ArrayList<Clause> clauses, int timeBudget, int numVariables) {
             this.clauses = clauses;
             this.timeBudget = timeBudget;
+            this.numVariables = numVariables;
         }
 
         @Override
         public String call() throws Exception {
-            String result = performGeneticAlgorithm(clauses, timeBudget);
+            String result = performGeneticAlgorithm(clauses, timeBudget, numVariables);
             System.out.println(result);
             return "Ready!";
         }
@@ -45,26 +49,32 @@ public class Main {
                     break;
                 }
                 case 2: {
-
+                    // Read file
                     String wdimacsFilepath = args[3];
-                    ArrayList<Clause> clauses = readWdimacsFile(wdimacsFilepath);
+                    Wdimacs wdimacsFile  = readWdimacsFile(wdimacsFilepath);
+                    ArrayList<Clause> clauses = wdimacsFile.getClauses();
 
                     String assignment = args[5];
                     int numClausesSatisfied = testClauses(clauses, assignment);
                     System.out.println(Integer.toString(numClausesSatisfied));
 
-
                     break;
                 }
                 case 3: {
+                    // Read file
                     String wdimacsFilepath = args[3];
-                    ArrayList<Clause> clauses = readWdimacsFile(wdimacsFilepath);
+                    Wdimacs wdimacsFile = readWdimacsFile(wdimacsFilepath);
+                    ArrayList<Clause> clauses = wdimacsFile.getClauses();
+
+                    int numVariables = wdimacsFile.getNumVariables();
                     int timeBudget = Integer.parseInt(args[5]);
                     int repetitions = Integer.parseInt(args[7]);
+
+                    // Perform repetitions of genetic algorithm
                     for (int i = 0; i < repetitions; i++) {
 
                         ExecutorService executor = Executors.newSingleThreadExecutor();
-                        Future<String> future = executor.submit(new GeneticAlgorithmTask(clauses, timeBudget));
+                        Future<String> future = executor.submit(new GeneticAlgorithmTask(clauses, timeBudget, numVariables));
 
                         try {
                             // Start running task for number of seconds specified in time budget
@@ -75,10 +85,8 @@ public class Main {
                         } catch (InterruptedException | ExecutionException e) {
                             e.printStackTrace();
                         }
-
                         executor.shutdownNow();
                     }
-
                     break;
                 }
                 default:
@@ -91,14 +99,15 @@ public class Main {
 
     }
 
-    private static String performGeneticAlgorithm(ArrayList<Clause> clauses, int timeBudget) {
+    private static String performGeneticAlgorithm(ArrayList<Clause> clauses, int timeBudget, int numVariables) {
         // Parameters for algorithm
         final int POP_SIZE = 5;
         final float ELITISM_PROP = 0.3f;
         final float NORM_FACTOR = 0.5f;
 
         // Generate initial population by random
-        ArrayList<Solution> pop = generateRandomPop(POP_SIZE, clauses);
+        ArrayList<Solution> pop = generateRandomPop(POP_SIZE, clauses, numVariables);
+//        System.out.println("pop generated");
         // Ranking
         sortSolutions(pop, 0, pop.size() - 1);
 
@@ -107,18 +116,22 @@ public class Main {
 
         int generation = 1;
         // Perform this until we get interrupted
-        while (!Thread.interrupted()) {
+        while (!Thread.currentThread().isInterrupted()) {
             // Selection
             ArrayList<Solution> selectedPop = selectSolutions(pop, POP_SIZE, ELITISM_PROP, NORM_FACTOR);
+//            System.out.println("selected pop");
             // Breeding
             ArrayList<Solution> childSolutions = breedPop(selectedPop, POP_SIZE);
+//            System.out.println("children created");
             // Get fitness of children
             for (Solution s : childSolutions) {
                 s.testClauses(clauses);
             }
+//            System.out.println("children tested");
             // Ranking
             sortSolutions(childSolutions, 0, childSolutions.size() - 1);
             pop = childSolutions;
+//            System.out.println("children ranked");
 
             // Replace best solution if we've found a better one
             if (pop.get(0).getNumSatisfied() > bestSolution.getNumSatisfied()) {
@@ -126,22 +139,25 @@ public class Main {
             }
 
             runtime = generation * POP_SIZE;
+//            System.out.println(runtime);
         }
+
+//        System.out.println("BLAH");
+
 
         return runtime + "\t" + String.valueOf(bestSolution.getNumSatisfied()) + "\t" + bestSolution.getAssignment();
     }
 
-    private static ArrayList<Solution> breedPop(ArrayList<Solution> selectedPop, int pop_size) {
+    private static ArrayList<Solution> breedPop(ArrayList<Solution> selectedPop, int popSize) {
         ArrayList<Solution> children = new ArrayList<>();
         int numInPop = selectedPop.size();
 
         Random rand = new Random();
         int i = 0;
-        while (children.size() < pop_size) {
-            int j = i;
-            while (j == i) {
-                j = rand.nextInt(selectedPop.size());
-            }
+        while (children.size() < popSize) {
+            // Pick another parent
+            int j = rand.nextInt(selectedPop.size());
+
             Solution child = breedSolution(selectedPop.get(i), selectedPop.get(j));
             children.add(child);
 
@@ -228,9 +244,8 @@ public class Main {
         return i + 1;
     }
 
-    private static ArrayList<Solution> generateRandomPop(int popSize, ArrayList<Clause> clauses) {
+    private static ArrayList<Solution> generateRandomPop(int popSize, ArrayList<Clause> clauses, int numVariables) {
         ArrayList<Solution> pop = new ArrayList<>();
-        int assignmentLength = clauses.get(0).getValues().size();
 
         final int CHAR_NUMBER_BASE = 10;
         Random r = new Random();
@@ -239,14 +254,14 @@ public class Main {
 
             // Build assignment string
             StringBuilder assignmentStrBldr = new StringBuilder();
-            for (int j = 0; j < assignmentLength; j++) {
+            for (int j = 0; j < numVariables; j++) {
                 char c = Character.forDigit(r.nextInt(POSITIVE_LITERAL_VALUE + 1), CHAR_NUMBER_BASE);
                 assignmentStrBldr.append(c);
             }
 
             String assignment = assignmentStrBldr.toString();
             int numClausesSatisfied = testClauses(clauses, assignment);
-            Solution newSolution = new Solution(assignment.toString(), numClausesSatisfied);
+            Solution newSolution = new Solution(assignment, numClausesSatisfied);
             pop.add(newSolution);
         }
 
@@ -264,13 +279,15 @@ public class Main {
                 }
             } catch (Exception e) {
                 System.out.println("Something went wrong");
+                e.printStackTrace();
             }
         }
         return numClausesSatisfied;
     }
 
-    private static ArrayList<Clause> readWdimacsFile(String wdimacsFilepath) {
+    private static Wdimacs readWdimacsFile(String wdimacsFilepath) {
         ArrayList<Clause> clauses = new ArrayList<>();
+        int numVariables = 0;
         try {
             File f = new File(wdimacsFilepath);
             Scanner s = new Scanner(f);
@@ -283,6 +300,8 @@ public class Main {
                         break;
                     // Parameters
                     case 'p':
+                        String[] tokens = line.split(" ");
+                        numVariables = Integer.parseInt(tokens[2]);
                         break;
                     // Clause
                     default:
@@ -295,35 +314,33 @@ public class Main {
             System.out.println("Couldn't find file " + wdimacsFilepath);
             e.printStackTrace();
         }
-        return clauses;
+        return new Wdimacs(clauses, numVariables);
     }
 
+    /**
+     * Represents a clause of literals which combine with disjunction.
+     */
     private static class Clause {
 
         private ArrayList<Integer> values;
         private ArrayList<Integer> assignments;
 
         public Clause(String valueString) {
-            values = new ArrayList<Integer>();
+            values = new ArrayList<>();
             String[] tokens = valueString.split(" ");
+            // Start at 1 and end at length-1 to ignore first and last elements
             for (int i = 1; i < tokens.length - 1; i++) {
                 values.add(Integer.parseInt(tokens[i]));
             }
         }
 
-        public ArrayList<Integer> getValues() {
-            return values;
-        }
-
-        public ArrayList<Integer> getAssignments() {
-            return assignments;
-        }
-
         public void assignValues(String assignmentString) {
             assignments = new ArrayList<>();
+
             for (Integer value : values) {
                 // Minus 1 as clause values start from 1
                 int variableIndex = Math.abs(value) - 1;
+                // Get 0 or 1 at correct position in assignment string
                 char charAtPosition = assignmentString.charAt(variableIndex);
                 int valueToAssign = Character.getNumericValue(charAtPosition);
                 assignments.add(valueToAssign);
@@ -331,22 +348,36 @@ public class Main {
         }
 
         public int evaluateClause() throws Exception {
-            if (values.size() == assignments.size()) {
+//            if (values.size() == assignments.size()) {
+            int i = 0;
+            try {
                 boolean result = false;
-                for (int i = 0; i < values.size(); i++) {
-                    boolean value = intToBool(assignments.get(i));
+                for (i = 0; i < values.size(); i++) {
+                    // Get bool associated with assignment
+                    boolean assignedValue = intToBool(assignments.get(i));
+                    // Check if negative literal
                     if (values.get(i) < 0) {
-                        value = !value;
+                        assignedValue = !assignedValue;
                     }
-                    result = result || value;
+                    // Perform disjunction/or to combine with overall expression
+                    result = result || assignedValue;
                 }
                 return boolToInt(result);
-            } else {
-                throw new Exception("Not all variables have been assigned");
+            } catch (Exception e) {
+                System.out.println("Couldn't find element " + i + " in size " + assignments.size());
+                throw e;
             }
+//            } else {
+//                System.out.println(values);
+//                System.out.println(assignments);
+//                throw new Exception("Not all variables have been assigned " + values.size() + " " + assignments.size());
+//            }
         }
     }
 
+    /**
+     * Represents a possible solution to a genetic algorithm for the MAXSAT problem.
+     */
     private static class Solution {
         private String assignment;
         private int numSatisfied;
@@ -369,8 +400,29 @@ public class Main {
             return numSatisfied;
         }
 
-        public void testClauses(ArrayList<Main.Clause> clauses) {
+        public void testClauses(ArrayList<Clause> clauses) {
             this.numSatisfied = Main.testClauses(clauses, this.assignment);
+        }
+    }
+
+    /**
+     * Represents the data read from a WDIMACS file. Stores the clauses and number of variables.
+     */
+    public static class Wdimacs {
+        private final ArrayList<Clause> clauses;
+        private final int numVariables;
+
+        public Wdimacs(ArrayList<Clause> clauses, int numVariables) {
+            this.clauses = clauses;
+            this.numVariables = numVariables;
+        }
+
+        public ArrayList<Clause> getClauses() {
+            return clauses;
+        }
+
+        public int getNumVariables() {
+            return numVariables;
         }
     }
 
