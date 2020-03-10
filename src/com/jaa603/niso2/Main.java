@@ -14,15 +14,21 @@ public class Main {
     static class GeneticAlgorithmTask implements Callable<String> {
         private final int numVariables;
         private final ArrayList<Clause> clauses;
+        private final int POP_SIZE;
+        private final float ELITISM_PROP;
+        private final float NORM_FACTOR;
 
-        public GeneticAlgorithmTask(ArrayList<Clause> clauses, int numVariables) {
+        public GeneticAlgorithmTask(ArrayList<Clause> clauses, int numVariables, int popSize, float elitismProp, float normFactor) {
             this.clauses = clauses;
             this.numVariables = numVariables;
+            this.POP_SIZE = popSize;
+            this.ELITISM_PROP = elitismProp;
+            this.NORM_FACTOR = normFactor;
         }
 
         @Override
         public String call() {
-            String result = performGeneticAlgorithm(clauses, numVariables);
+            String result = performGeneticAlgorithm(clauses, numVariables, POP_SIZE, ELITISM_PROP, NORM_FACTOR);
             System.out.println(result);
             return "Ready!";
         }
@@ -66,11 +72,16 @@ public class Main {
                     int timeBudget = Integer.parseInt(args[5]);
                     int repetitions = Integer.parseInt(args[7]);
 
+                    // Parameters for algorithm
+                    final int POP_SIZE = 5;
+                    final float ELITISM_PROP = 0.3f;
+                    final float NORM_FACTOR = 0.5f;
+
                     // Perform repetitions of genetic algorithm
                     for (int i = 0; i < repetitions; i++) {
 
                         ExecutorService executor = Executors.newSingleThreadExecutor();
-                        Future<String> future = executor.submit(new GeneticAlgorithmTask(clauses, numVariables));
+                        Future<String> future = executor.submit(new GeneticAlgorithmTask(clauses, numVariables, POP_SIZE, ELITISM_PROP, NORM_FACTOR));
 
                         try {
                             // Start running task for number of seconds specified in time budget
@@ -95,11 +106,7 @@ public class Main {
 
     }
 
-    private static String performGeneticAlgorithm(ArrayList<Clause> clauses, int numVariables) {
-        // Parameters for algorithm
-        final int POP_SIZE = 5;
-        final float ELITISM_PROP = 0.3f;
-        final float NORM_FACTOR = 0.5f;
+    private static String performGeneticAlgorithm(ArrayList<Clause> clauses, int numVariables, final int POP_SIZE, final float ELITISM_PROP, final float NORM_FACTOR) {
 
         // Generate initial population by random
         ArrayList<Solution> pop = generateRandomPop(POP_SIZE, clauses, numVariables);
@@ -201,6 +208,12 @@ public class Main {
         return selected;
     }
 
+    /**
+     * Quicksort implementation for sorting Solutions.
+     * @param pop
+     * @param start
+     * @param end
+     */
     private static void sortSolutions(ArrayList<Solution> pop, int start, int end) {
         if (start < end) {
             int pivot = partition(pop, start, end);
