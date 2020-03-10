@@ -3,6 +3,7 @@
 out/
 *.iml
 *.wcnf
+*.csv
 
 # Include
 !example.wcnf
