@@ -11,43 +11,44 @@ import static com.jaa603.niso2.Main.testClauses;
 public class GeneticAlgorithmRunnable implements Runnable {
     private final int numVariables;
     private final ArrayList<Clause> clauses;
+    private final int MAX_GENERATIONS;
     private final int POP_SIZE;
     private final float ELITISM_PROP;
     private final float NORM_FACTOR;
     private final static int POSITIVE_LITERAL_VALUE = 1;
 
+    private boolean done;
 
     Solution bestSolution;
     int runtime;
     private boolean timeout;
 
-    public GeneticAlgorithmRunnable(ArrayList<Clause> clauses, int numVariables, int popSize, float elitismProp, float normFactor) {
+    public GeneticAlgorithmRunnable(ArrayList<Clause> clauses, int numVariables, int maxGenerations, int popSize, float elitismProp, float normFactor) {
         this.clauses = clauses;
         this.numVariables = numVariables;
+        this.MAX_GENERATIONS = maxGenerations;
         this.POP_SIZE = popSize;
         this.ELITISM_PROP = elitismProp;
         this.NORM_FACTOR = normFactor;
         this.timeout = false;
+        this.done = false;
     }
-
-//    @Override
-//    public String call() {
-//        String result = performGeneticAlgorithm(clauses, numVariables, POP_SIZE, ELITISM_PROP, NORM_FACTOR);
-//        System.out.println(result);
-//        return "Ready!";
-//    }
 
     @Override
     public void run() {
-        performGeneticAlgorithm(clauses, numVariables, POP_SIZE, ELITISM_PROP, NORM_FACTOR);
+        performGeneticAlgorithm(clauses, numVariables, MAX_GENERATIONS, POP_SIZE, ELITISM_PROP, NORM_FACTOR);
     }
 
     public String endAndReturn() {
         timeout = true;
-        return runtime + "\t" + bestSolution.getNumSatisfied() + "\t" + bestSolution.getAssignment();
+        if (bestSolution != null) {
+            return runtime + "\t" + bestSolution.getNumSatisfied() + "\t" + bestSolution.getAssignment();
+        } else {
+            return runtime + "\t" + 0 + "\t" + "NULL";
+        }
     }
 
-    private void performGeneticAlgorithm(ArrayList<Clause> clauses, int numVariables, final int POP_SIZE, final float ELITISM_PROP, final float NORM_FACTOR) {
+    private void performGeneticAlgorithm(ArrayList<Clause> clauses, int numVariables, final int MAX_GENERATIONS, final int POP_SIZE, final float ELITISM_PROP, final float NORM_FACTOR) {
 
         // Generate initial population by random
         ArrayList<Solution> pop = generateRandomPop(POP_SIZE, clauses, numVariables);
@@ -55,12 +56,11 @@ public class GeneticAlgorithmRunnable implements Runnable {
         sortSolutions(pop, 0, pop.size() - 1);
 
         runtime = 0;
-        bestSolution = new Solution("", 0);
+        // Initialise to first Solution in population
+        bestSolution = pop.get(0);
 
-        int generation = 1;
-        // Perform this until we get interrupted
-
-        while (!timeout) {
+        int generation = 0;
+        while (!timeout && generation < MAX_GENERATIONS) {
             // Selection
             ArrayList<Solution> selectedPop = selectSolutions(pop, POP_SIZE, ELITISM_PROP, NORM_FACTOR);
             if (timeout) {
@@ -93,8 +93,11 @@ public class GeneticAlgorithmRunnable implements Runnable {
                 return;
             }
 
-            runtime = generation * POP_SIZE;
+            // Add 1 to account for starting at 0
+            runtime = (generation + 1) * POP_SIZE;
+            generation++;
         }
+        this.done = true;
     }
 
     private static ArrayList<Solution> generateRandomPop(int popSize, ArrayList<Clause> clauses, int numVariables) {
@@ -108,6 +111,7 @@ public class GeneticAlgorithmRunnable implements Runnable {
             // Build assignment string
             StringBuilder assignmentStrBldr = new StringBuilder();
             for (int j = 0; j < numVariables; j++) {
+                // Add 1 to literal value to account for random exclusivity
                 char c = Character.forDigit(r.nextInt(POSITIVE_LITERAL_VALUE + 1), CHAR_NUMBER_BASE);
                 assignmentStrBldr.append(c);
             }
@@ -176,6 +180,7 @@ public class GeneticAlgorithmRunnable implements Runnable {
         StringBuilder childStrBldr = new StringBuilder();
         Random rand = new Random();
         for (int i = 0; i < assignment1.length(); i++) {
+            // Add 1 to account for random bound exclusivity
             int parentToChooseFrom = rand.nextInt(POSITIVE_LITERAL_VALUE + 1);
             if (parentToChooseFrom == 0) {
                 childStrBldr.append(assignment1.charAt(i));
@@ -223,5 +228,9 @@ public class GeneticAlgorithmRunnable implements Runnable {
         pop.set(end, swapTemp);
 
         return i + 1;
+    }
+
+    public boolean isDone() {
+        return done;
     }
 }

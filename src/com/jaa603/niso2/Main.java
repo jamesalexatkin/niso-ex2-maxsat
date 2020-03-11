@@ -53,6 +53,7 @@ public class Main {
                     int repetitions = Integer.parseInt(args[7]);
 
                     // Parameters for algorithm
+                    final int MAX_GENERATIONS = 10;
                     final int POP_SIZE = 5;
                     final float ELITISM_PROP = 0.3f;
                     final float NORM_FACTOR = 0.5f;
@@ -60,7 +61,7 @@ public class Main {
                     // Perform repetitions of genetic algorithm
                     for (int i = 0; i < repetitions; i++) {
 
-                        GeneticAlgorithmRunnable runnable = new GeneticAlgorithmRunnable(clauses, numVariables, POP_SIZE, ELITISM_PROP, NORM_FACTOR);
+                        GeneticAlgorithmRunnable runnable = new GeneticAlgorithmRunnable(clauses, numVariables, MAX_GENERATIONS, POP_SIZE, ELITISM_PROP, NORM_FACTOR);
                         Thread thread = new Thread(runnable);
 
                         thread.start();
