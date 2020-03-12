@@ -97,9 +97,10 @@ public class Main {
             clause.assignValues(assignment);
             try {
                 // Check if satisfied
-                if (clause.evaluateClause() == 1) {
-                    numClausesSatisfied++;
-                }
+//                if (clause.evaluateClause() == 1) {
+                // Clause will return 1 if satisfied, or 0 if not
+                    numClausesSatisfied += clause.evaluateClause();
+//                }
             } catch (Exception e) {
                 System.out.println("Something went wrong");
                 e.printStackTrace();
@@ -140,12 +141,6 @@ public class Main {
         return new Wdimacs(clauses, numVariables);
     }
 
-    public static int boolToInt(boolean b) {
-        return b ? 1 : 0;
-    }
 
-    public static boolean intToBool(int i) {
-        return i == 1;
-    }
 }
 

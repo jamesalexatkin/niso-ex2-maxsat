@@ -1,9 +1,10 @@
 package com.jaa603.niso2;
 
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Date;
 import java.util.Random;
 
-import static com.jaa603.niso2.Main.testClauses;
 
 /**
  * Callable object used to run a genetic algorithm.
@@ -41,11 +42,11 @@ public class GeneticAlgorithmRunnable implements Runnable {
 
     public String endAndReturn() {
         timeout = true;
-        if (bestSolution != null) {
-            return runtime + "\t" + bestSolution.getNumSatisfied() + "\t" + bestSolution.getAssignment();
-        } else {
-            return runtime + "\t" + 0 + "\t" + "NULL";
+
+        if (bestSolution == null) {
+            bestSolution = generateRandomSolution(clauses, numVariables);
         }
+        return runtime + "\t" + bestSolution.getNumSatisfied() + "\t" + bestSolution.getAssignment();
     }
 
     private void performGeneticAlgorithm(ArrayList<Clause> clauses, int numVariables, final int MAX_GENERATIONS, final int POP_SIZE, final float ELITISM_PROP, final float NORM_FACTOR) {
@@ -61,25 +62,42 @@ public class GeneticAlgorithmRunnable implements Runnable {
 
         int generation = 0;
         while (!timeout && generation < MAX_GENERATIONS) {
+            long startTime = new Date().getTime();
             // Selection
             ArrayList<Solution> selectedPop = selectSolutions(pop, POP_SIZE, ELITISM_PROP, NORM_FACTOR);
+            long endTime = new Date().getTime();
+//            System.out.println("Selection: " + (endTime - startTime));
             if (timeout) {
                 return;
             }
+
+            startTime = new Date().getTime();
             // Breeding
             ArrayList<Solution> childSolutions = breedPop(selectedPop, POP_SIZE);
+            endTime = new Date().getTime();
+//            System.out.println("Breeding: " + (endTime - startTime));
             if (timeout) {
                 return;
             }
+
+
+            startTime = new Date().getTime();
             // Get fitness of children
             for (Solution s : childSolutions) {
-                s.testClauses(clauses);
+                s.calculateFitness(clauses);
             }
+            endTime = new Date().getTime();
+//            System.out.println("Fitness: " + (endTime - startTime));
             if (timeout) {
                 return;
             }
+
+
             // Ranking
+            startTime = new Date().getTime();
             sortSolutions(childSolutions, 0, childSolutions.size() - 1);
+            endTime = new Date().getTime();
+//            System.out.println("Ranking: " + (endTime - startTime));
             pop = childSolutions;
             if (timeout) {
                 return;
@@ -103,26 +121,42 @@ public class GeneticAlgorithmRunnable implements Runnable {
     private static ArrayList<Solution> generateRandomPop(int popSize, ArrayList<Clause> clauses, int numVariables) {
         ArrayList<Solution> pop = new ArrayList<>();
 
-        final int CHAR_NUMBER_BASE = 10;
-        Random r = new Random();
-
         for (int i = 0; i < popSize; i++) {
 
-            // Build assignment string
-            StringBuilder assignmentStrBldr = new StringBuilder();
-            for (int j = 0; j < numVariables; j++) {
-                // Add 1 to literal value to account for random exclusivity
-                char c = Character.forDigit(r.nextInt(POSITIVE_LITERAL_VALUE + 1), CHAR_NUMBER_BASE);
-                assignmentStrBldr.append(c);
-            }
-
-            String assignment = assignmentStrBldr.toString();
-            int numClausesSatisfied = testClauses(clauses, assignment);
-            Solution newSolution = new Solution(assignment, numClausesSatisfied);
+//            // Build assignment string
+//            StringBuilder assignmentStrBldr = new StringBuilder();
+//            for (int j = 0; j < numVariables; j++) {
+//                // Add 1 to literal value to account for random exclusivity
+//                char c = Character.forDigit(r.nextInt(POSITIVE_LITERAL_VALUE + 1), CHAR_NUMBER_BASE);
+//                assignmentStrBldr.append(c);
+//            }
+//
+//            String assignment = assignmentStrBldr.toString();
+//            int numClausesSatisfied = testClauses(clauses, assignment);
+//            Solution newSolution = new Solution(assignment, numClausesSatisfied);
+            Solution newSolution = generateRandomSolution(clauses, numVariables);
             pop.add(newSolution);
         }
 
         return pop;
+    }
+
+    private static Solution generateRandomSolution(ArrayList<Clause> clauses, int numVariables) {
+        final int CHAR_NUMBER_BASE = 10;
+        Random r = new Random();
+
+        // Build assignment string
+        StringBuilder assignmentStrBldr = new StringBuilder();
+        for (int j = 0; j < numVariables; j++) {
+            // Add 1 to literal value to account for random exclusivity
+            char c = Character.forDigit(r.nextInt(POSITIVE_LITERAL_VALUE + 1), CHAR_NUMBER_BASE);
+            assignmentStrBldr.append(c);
+        }
+
+        String assignment = assignmentStrBldr.toString();
+        Solution newSolution = new Solution(assignment, 0);
+        newSolution.calculateFitness(clauses);
+        return newSolution;
     }
 
     private static ArrayList<Solution> selectSolutions(ArrayList<Solution> pop, int popSize, float elitismProp, float normFactor) {
@@ -201,12 +235,13 @@ public class GeneticAlgorithmRunnable implements Runnable {
      * @param end
      */
     private static void sortSolutions(ArrayList<Solution> pop, int start, int end) {
-        if (start < end) {
-            int pivot = partition(pop, start, end);
-
-            sortSolutions(pop, start, pivot - 1);
-            sortSolutions(pop, pivot + 1, end);
-        }
+//        if (start < end) {
+////            int pivot = partition(pop, start, end);
+////
+////            sortSolutions(pop, start, pivot - 1);
+////            sortSolutions(pop, pivot + 1, end);
+////        }
+        Collections.sort(pop);
     }
 
     private static int partition(ArrayList<Solution> pop, int start, int end) {

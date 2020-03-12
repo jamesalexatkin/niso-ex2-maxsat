@@ -26,15 +26,15 @@ public class Exercise5Test {
 
         // Parameters for algorithm
         final int MAX_GENERATIONS = 10;
-        final int POP_MIN = 100;
-        final int POP_STEP = 100;
-        final int POP_ITER = 1;
-        final float ELITISM_MIN = 0.3f;
-        final float ELITISM_STEP = 0.3f;
+        final int POP_MIN = 200;
+        final int POP_STEP = 200;
+        final int POP_ITER = 5;
+        final float ELITISM_MIN = 0.2f;
+        final float ELITISM_STEP = 0.2f;
         final int ELITISM_ITER = 1;
-        final float NORM_MIN = 0.3f;
-        final float NORM_STEP = 0.3f;
-        final int NORM_ITER = 3;
+        final float NORM_MIN = 0.2f;
+        final float NORM_STEP = 0.2f;
+        final int NORM_ITER = 1;
 
         int popSize;
         float elitismProp;
@@ -73,7 +73,7 @@ public class Exercise5Test {
                         //Getting the current date
                         long startTime = new Date().getTime();
                         long currentTime = startTime;
-                        long endTime = startTime + (TIME_BUDGET * 1000);
+                        long endTime = startTime + (TIME_BUDGET * 1000); //ms
 
                         // Keep going until we reach time limit
                         while (currentTime < endTime && !runnable.isDone()) {
