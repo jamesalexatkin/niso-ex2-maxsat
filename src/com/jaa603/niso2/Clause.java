@@ -70,7 +70,6 @@ public class Clause {
 //
                 // Check if negative literal
                 if (values[i] < 0) {
-//                    assignedValue = !assignedValue;
                     // Toggle if so
                     if (assignedValue == 1) {
                         assignedValue = 0;
@@ -80,7 +79,6 @@ public class Clause {
                 }
 
                 // If the new value is 1, we can return 1 immediately as the whole clause is satisfied
-//                if (assignedValue == true) {
                 if (assignedValue == 1) {
                     return 1;
                 }

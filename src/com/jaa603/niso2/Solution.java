@@ -39,15 +39,9 @@ public class Solution implements Comparable<Solution> {
     public void calculateFitness(ArrayList<Clause> clauses) {
         int numClausesSatisfied = 0;
         for (Clause clause : clauses) {
-            try {
-                // Check if satisfied
-//                if (clause.evaluateClause() == 1) {
-                if (clause.evaluate(assignment) == 1) {
-                    numClausesSatisfied++;
-                }
-            } catch (Exception e) {
-                System.out.println("Something went wrong");
-                e.printStackTrace();
+            // Check if satisfied
+            if (clause.evaluate(assignment) == 1) {
+                numClausesSatisfied++;
             }
         }
         this.numSatisfied = numClausesSatisfied;

@@ -5,9 +5,7 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.util.ArrayList;
 import java.util.Date;
-import java.util.Random;
 import java.util.Scanner;
-import java.util.concurrent.*;
 
 /**
  * Main class used to run Exercises 1, 2 & 3
@@ -21,13 +19,7 @@ public class Main {
                     String clause = args[3];
                     String assignment = args[5];
                     Clause c = new Clause(clause);
-                    c.assignValues(assignment);
-                    try {
-                        int result = c.evaluateClause();
-                        System.out.println(result);
-                    } catch (Exception e) {
-                        System.out.println(e.getMessage());
-                    }
+                    System.out.println(c.evaluate(assignment));
                     break;
                 }
                 case 2: {
@@ -71,7 +63,7 @@ public class Main {
                         long currentTime = startTime;
                         long endTime = startTime + (TIME_BUDGET * 1000);
 
-                        while (currentTime < endTime) {
+                        while (currentTime < endTime && !runnable.isDone()) {
                             currentTime = new Date().getTime();
                         }
 
@@ -94,17 +86,7 @@ public class Main {
     public static int testClauses(ArrayList<Clause> clauses, String assignment) {
         int numClausesSatisfied = 0;
         for (Clause clause : clauses) {
-            clause.assignValues(assignment);
-            try {
-                // Check if satisfied
-//                if (clause.evaluateClause() == 1) {
-                // Clause will return 1 if satisfied, or 0 if not
-                    numClausesSatisfied += clause.evaluateClause();
-//                }
-            } catch (Exception e) {
-                System.out.println("Something went wrong");
-                e.printStackTrace();
-            }
+            numClausesSatisfied += clause.evaluate(assignment);
         }
         return numClausesSatisfied;
     }
@@ -140,7 +122,5 @@ public class Main {
         }
         return new Wdimacs(clauses, numVariables);
     }
-
-
 }
 
