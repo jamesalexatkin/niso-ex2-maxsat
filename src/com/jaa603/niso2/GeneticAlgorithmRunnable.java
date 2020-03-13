@@ -1,5 +1,6 @@
 package com.jaa603.niso2;
 
+import java.awt.image.AreaAveragingScaleFilter;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
@@ -64,7 +65,9 @@ public class GeneticAlgorithmRunnable implements Runnable {
         while (!timeout && generation < MAX_GENERATIONS) {
             long startTime = new Date().getTime();
             // Selection
-            ArrayList<Solution> selectedPop = selectSolutions(pop, POP_SIZE, ELITISM_PROP, NORM_FACTOR);
+            ArrayList<Solution> eliteSelected = selectEliteSolutions(pop, POP_SIZE, ELITISM_PROP);
+            ArrayList<Solution> nonEliteSelected = selectNonEliteSolutions(pop, POP_SIZE, ELITISM_PROP, NORM_FACTOR);
+//                    selectedPop = selectSolutions(pop, POP_SIZE, ELITISM_PROP, NORM_FACTOR);
             long endTime = new Date().getTime();
 //            System.out.println("Selection: " + (endTime - startTime));
             if (timeout) {
@@ -73,7 +76,11 @@ public class GeneticAlgorithmRunnable implements Runnable {
 
             startTime = new Date().getTime();
             // Breeding
-            ArrayList<Solution> childSolutions = breedPop(selectedPop, POP_SIZE);
+//            ArrayList<Solution> childSolutions = breedPop(selectedPop, POP_SIZE);
+            // Add elite and non-elite to create breeding pool
+            ArrayList<Solution> breedingPool = new ArrayList<>(eliteSelected);
+            breedingPool.addAll(nonEliteSelected);
+            ArrayList<Solution> childSolutions = breedPop(breedingPool, POP_SIZE, ELITISM_PROP);
             endTime = new Date().getTime();
 //            System.out.println("Breeding: " + (endTime - startTime));
             if (timeout) {
@@ -92,13 +99,17 @@ public class GeneticAlgorithmRunnable implements Runnable {
                 return;
             }
 
+            ArrayList<Solution> newGeneration = new ArrayList<>(eliteSelected);
+            newGeneration.addAll(childSolutions);
 
             // Ranking
             startTime = new Date().getTime();
-            sortSolutions(childSolutions, 0, childSolutions.size() - 1);
+//            sortSolutions(childSolutions, 0, childSolutions.size() - 1);
+            sortSolutions(newGeneration, 0, newGeneration.size() - 1);
             endTime = new Date().getTime();
 //            System.out.println("Ranking: " + (endTime - startTime));
-            pop = childSolutions;
+//            pop = childSolutions;
+            pop = newGeneration;
             if (timeout) {
                 return;
             }
@@ -116,6 +127,38 @@ public class GeneticAlgorithmRunnable implements Runnable {
             generation++;
         }
         this.done = true;
+    }
+
+    private ArrayList<Solution> selectNonEliteSolutions(ArrayList<Solution> pop, int popSize, float elitismProp, float normFactor) {
+        ArrayList<Solution> selected = new ArrayList<>();
+
+        // Simple truncation/elitism selection
+        int eliteGroupSize = (int) (popSize * elitismProp);
+
+        Random rand = new Random();
+        for (int i = eliteGroupSize; i < popSize; i++) {
+            float randomProb = rand.nextFloat();
+            // Exponential ranking function
+            float selectionProb = (float) ((1 - Math.exp(-i)) / normFactor);
+
+            if (randomProb > selectionProb) {
+                selected.add(pop.get(i));
+            }
+        }
+
+        return selected;
+    }
+
+    private ArrayList<Solution> selectEliteSolutions(ArrayList<Solution> pop, int popSize, float elitismProp) {
+        ArrayList<Solution> selected = new ArrayList<>();
+
+        // Simple truncation/elitism selection
+        int eliteGroupSize = (int) (popSize * elitismProp);
+
+        for (int i = 0; i < eliteGroupSize; i++) {
+            selected.add(pop.get(i));
+        }
+        return selected;
     }
 
     private static ArrayList<Solution> generateRandomPop(int popSize, ArrayList<Clause> clauses, int numVariables) {
@@ -183,13 +226,15 @@ public class GeneticAlgorithmRunnable implements Runnable {
         return selected;
     }
 
-    private static ArrayList<Solution> breedPop(ArrayList<Solution> selectedPop, int popSize) {
+    private static ArrayList<Solution> breedPop(ArrayList<Solution> selectedPop, int popSize, float ELITISM_PROP) {
         ArrayList<Solution> children = new ArrayList<>();
         int numInPop = selectedPop.size();
 
         Random rand = new Random();
         int i = 0;
-        while (children.size() < popSize) {
+        // Only breed for proportion of population made up of elites
+        int maxChildren = (int) (popSize * (1 - ELITISM_PROP));
+        while (children.size() < maxChildren) {
             // Pick another parent
             int j = rand.nextInt(selectedPop.size());
 

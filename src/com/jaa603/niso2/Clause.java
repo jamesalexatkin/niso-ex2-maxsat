@@ -4,11 +4,13 @@ public class Clause {
     private int[] values;
 
     public Clause(String valueString) {
-        String[] tokens = valueString.split(" ");
+        String[] tokens = valueString.split("\\s+");
         values = new int[tokens.length - 2];
         // Start at 1 and end at length-1 to ignore first and last elements
         for (int i = 0; i < tokens.length - 2; i++) {
-            values[i] = Integer.parseInt(tokens[i + 1]);
+            if (!tokens[i + 1].isBlank()) {
+                values[i] = Integer.parseInt(tokens[i + 1]);
+            }
         }
     }
 

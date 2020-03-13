@@ -25,15 +25,15 @@ public class Exercise5Test {
 
         // Parameters for algorithm
         final int MAX_GENERATIONS = 10;
-        final int POP_MIN = 200;
-        final int POP_STEP = 200;
-        final int POP_ITER = 5;
-        final float ELITISM_MIN = 0.2f;
+        final int POP_MIN = 500;
+        final int POP_STEP = 50;
+        final int POP_ITER = 1;
+        final float ELITISM_MIN = 0.5f;
         final float ELITISM_STEP = 0.2f;
         final int ELITISM_ITER = 1;
         final float NORM_MIN = 0.2f;
         final float NORM_STEP = 0.2f;
-        final int NORM_ITER = 1;
+        final int NORM_ITER = 5;
 
         int popSize;
         float elitismProp;
@@ -83,25 +83,32 @@ public class Exercise5Test {
                         String result = runnable.endAndReturn();
 
 //                        System.out.println(result);
+                        String[] tokens = result.split("\t");
+                        int numClausesSatisfied = Integer.parseInt(tokens[1]);
+                        cumulativeTotal += numClausesSatisfied;
+
+                        // Produce row and write to CSV
+                        int average = cumulativeTotal / REPETITIONS;
+                        StringJoiner joiner = new StringJoiner(",");
+                        joiner.add(Integer.toString(popSize)).add(Float.toString(elitismProp)).add(Float.toString(normFactor)).add(Integer.toString(numClausesSatisfied));
+                        csvWriter.append(joiner.toString());
+                        csvWriter.append("\n");
+
                         progress++;
                         timeElapsed += TIME_BUDGET;
                         // * 1000 to convert seconds to ms
                         long timeRemaining = (TOTAL_TIME - timeElapsed) * 1000L;
-                        System.out.print("\r" + progress + "/" + END_PROGRESS + " " + formatTime(timeRemaining) + " " + formatTime(currentTime - overallStartTime));
-
-                        String[] tokens = result.split("\t");
-                        int numClausesSatisfied = Integer.parseInt(tokens[1]);
-                        cumulativeTotal += numClausesSatisfied;
+                        System.out.print("\r" + progress + "/" + END_PROGRESS + " " + formatTime(timeRemaining) + " " + formatTime(currentTime - overallStartTime) + " Last result: " + numClausesSatisfied);
                     }
 
-                    // Produce row and write to CSV
-                    int average = cumulativeTotal / REPETITIONS;
-                    StringJoiner joiner = new StringJoiner(",");
-                    joiner.add(Integer.toString(popSize)).add(Float.toString(elitismProp)).add(Float.toString(normFactor)).add(Integer.toString(average));
-                    csvWriter.append(joiner.toString());
-                    csvWriter.append("\n");
+//                    // Produce row and write to CSV
+//                    int average = cumulativeTotal / REPETITIONS;
+//                    StringJoiner joiner = new StringJoiner(",");
+//                    joiner.add(Integer.toString(popSize)).add(Float.toString(elitismProp)).add(Float.toString(normFactor)).add(Integer.toString(average));
+//                    csvWriter.append(joiner.toString());
+//                    csvWriter.append("\n");
 
-                    System.out.println("\nPop: " + popSize + ", Elite: " + elitismProp + ", Norm: " + normFactor + ", Avg: " + average);
+//                    System.out.println("\nPop: " + popSize + ", Elite: " + elitismProp + ", Norm: " + normFactor + ", Avg: " + average);
                 }
             }
         }

@@ -111,8 +111,10 @@ public class Main {
                         break;
                     // Clause
                     default:
-                        Clause clauseFromLine = new Clause(line);
-                        clauses.add(clauseFromLine);
+                        if (Character.isDigit(line.charAt(0))) {
+                            Clause clauseFromLine = new Clause(line);
+                            clauses.add(clauseFromLine);
+                        }
                         break;
                 }
             }
